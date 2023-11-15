@@ -5,6 +5,7 @@ const ProductController=require('../controllers/productController');
 
 router.post('/',ProductController.addProduct)
 router.get('/',ProductController.searchProduct)
+router.get('/search-selections',ProductController.searchSelections)
 router.get('/:productId',ProductController.getProductId)
 router.get('/product/bin',ProductController.getProductBin)
 router.delete('/',ProductController.deleteProduct)
