@@ -100,8 +100,7 @@ const searchProductWithPaginate = async (query, page, limit, sort) => {
 
 const addProduct = async (req, res, next) => {
     try {
-
-        console.log("call function add product")
+        console.log(req.body)
         const product = await Product.create(req.body);
         return res.status(200).json({ success: true, result: product, status: 'Bạn đã thêm sản phẩm thành công' })
     }
@@ -181,8 +180,8 @@ const restoreProduct = async (req, res, next) => {
 const editProduct = async (req, res, next) => {
     try {
         const { imagesDelete, formData } = { ...req.body }
-
-        const { _id, productInfo } = formData
+        const { _id, ...productInfo } = formData
+        console.log(productInfo)
 
         await Product.findByIdAndUpdate(_id, { $set: productInfo })
 
