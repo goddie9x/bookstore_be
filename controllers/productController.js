@@ -38,12 +38,16 @@ const searchProduct = async (req, res, next) => {
         };
 
         const products = await searchProductPage(
-            search,
-            subject,
-            page,
-            limit,
-            sort,
-            { minPrice, maxPrice, category }
+            { 
+                search,
+                subject,
+                page,
+                limit,
+                sort,
+                minPrice,
+                maxPrice,
+                category
+            }
         );
 
         return res.status(200).json({ success: true, products, status: 'ok' });
@@ -54,12 +58,16 @@ const searchProduct = async (req, res, next) => {
 };
 
 const searchProductPage = async (
-    search = '',
-    subject = '',
-    page = 1,
-    limit = 50,
-    sort = '-_id',
-    { minPrice, maxPrice, category } = {}
+    {
+        search = '',
+        subject = '',
+        page = 1,
+        limit = 50,
+        sort = '-_id',
+        minPrice,
+        maxPrice,
+        category
+    }
 ) => {
     const vPage = parseInt(page);
     const vLimit = parseInt(limit);
@@ -68,8 +76,11 @@ const searchProductPage = async (
     if (search) {
         query.$text = { $search: search };
     }
-    if (subject) {
+    if (subject&&subject!='null') {
         query.subject = subject;
+    }
+    if (category) {
+        query.category = category;
     }
     if (minPrice || maxPrice) {
         query.price = {};
@@ -79,9 +90,6 @@ const searchProductPage = async (
         if (maxPrice) {
             query.price.$lte = parseInt(maxPrice);
         }
-    }
-    if (category) {
-        query.category = category;
     }
     const products = await searchProductWithPaginate(query, vPage, vLimit, sort);
     const total = products.length;
