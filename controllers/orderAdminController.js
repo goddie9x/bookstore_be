@@ -3,7 +3,6 @@ const OrderItem=require('../models/OrderItem')
 const User=require('../models/User')
 const Product=require('../models/Product')
 const Cart=require('../models/Cart')
-const Size=require('../models/Size')
 const Bluebird=require('bluebird')
 const SendMail = require('../utils/sendMail')
 

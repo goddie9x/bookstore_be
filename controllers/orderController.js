@@ -3,7 +3,7 @@ const OrderItem = require('../models/OrderItem')
 const User = require('../models/User')
 const Product = require('../models/Product')
 const Cart = require('../models/Cart')
-const Size = require('../models/Size')
+const sendEmail = require('../utils/sendMail')
 const Bluebird = require('bluebird')
 
 
@@ -56,14 +56,13 @@ const createOrder = async (req, res, next) => {
         const { infoOrder, cartItem } = { ...req.body }
         infoOrder.price = cartItem.reduce((accumulator,currentValue)=>accumulator+=currentValue.price,0)
         const newOrder = await Order.create(infoOrder);
-        console.log("cartItem: ", cartItem)
         const newOrderItem = cartItem.map(item => ({
             order: newOrder._id,
             ...item,
         }))
         const createOrderItem = await OrderItem.create(newOrderItem)
         Bluebird.map(cartItem, async (item) => {
-            await Size.updateOne(
+            await Product.updateOne(
                 { product: item.product },
                 { $inc: { numberInStock: -item.quantity } }
             )
@@ -72,6 +71,7 @@ const createOrder = async (req, res, next) => {
             _id: item.cartId
         }))
         await Cart.deleteMany({ _id: { $in: cartId } })
+        await sendEmail(infoOrder.email,'Đơn hàng đã được đặt', 'Đơn hàng với mã '+newOrder._id+' đã được đặt thành công')
         res.status(200).json({ success: true, newOrder, createOrderItem, status: "ok" })
     } catch (error) {
         console.log(error)
@@ -86,7 +86,7 @@ const cancelOrder = async (req, res, next) => {
         await Order.updateOne({ _id: orderId }, { $set: { cancel } })
         const orderItems = await OrderItem.find({ order: orderId }).lean()
         Bluebird.map(orderItems, async (item) => {
-            await Size.updateOne(
+            await Product.updateOne(
                 { product: item.product },
                 { $inc: { numberInStock: item.quantity } }
             )

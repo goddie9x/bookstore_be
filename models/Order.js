@@ -19,6 +19,10 @@ var orderSchema=new Schema({
         type:String,
         required:true
     },
+    email:{
+        type:String,
+        required:true
+    },
     status:{
         type:Boolean,
         default:false

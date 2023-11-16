@@ -3,7 +3,6 @@ const Cart = require('../models/Cart')
 const Wishlist = require('../models/Wishlist')
 const OrderItem = require('../models/OrderItem')
 const Order = require('../models/Order')
-const Size = require('../models/Size');
 const Cloudinary = require('../cloudinary/clouddinary')
 var Bluebird = require("bluebird");
 
@@ -84,51 +83,27 @@ const searchProductPage = async (
     if (category) {
         query.category = category;
     }
-
-    const [products, total] = await Bluebird.all([
-        searchProductSize(query, vPage, vLimit, sort),
-        Product.countDocuments(query),
-    ]);
-
+    const products = await searchProductWithPaginate(query, vPage, vLimit, sort);
+    const total = products.length;
     const pages = Math.ceil(total / vLimit);
+
     return { products, total, pages, page: vPage };
 };
 
-const searchProductSize = async (query, page, limit, sort) => {
-    const products = await Product.find(query)
+const searchProductWithPaginate = async (query, page, limit, sort) => {
+    return await Product.find(query)
         .skip((page - 1) * limit)
         .limit(limit)
         .sort(sort)
         .lean();
-
-    return Bluebird.map(
-        products,
-        async (product) => {
-            const sizes = await Size.find({ product: product._id })
-                .select(' name numberInStock')
-                .lean();
-            return { ...product, sizes };
-        },
-        { concurrency: products.length }
-    );
 };
 
 const addProduct = async (req, res, next) => {
     try {
 
         console.log("call function add product")
-        const { size, ...rest } = req.body;
-        const product = await Product.create(rest);
-        const sizeProudct = size.map(size => ({
-            ...size,
-            product: product._id
-        }))
-        await Size.create(sizeProudct);
-        console.log("thêm thành công ");
-        const result = { ...product, sizes: sizeProudct }
-        return res.status(200).json({ success: true, result, status: 'Bạn đã thêm sản phẩm thành công' })
-
-
+        const product = await Product.create(req.body);
+        return res.status(200).json({ success: true, result: product, status: 'Bạn đã thêm sản phẩm thành công' })
     }
     catch (error) {
         next(error)
@@ -151,10 +126,7 @@ const getProductId = async (req, res, next) => {
                 category: product.category,
                 _id: { $ne: req.params.productId } // Exclude the current product
             }).limit(4).lean();
-
-            const size = await Size.find({ product: product._id }).select('-_id name numberInStock').lean();
-
-            const result = { ...product, size, relatedProducts };
+            const result = { ...product, relatedProducts };
             return res.status(200).json({ success: true, result, status: "Lấy thành công" });
         }
     } catch (error) {
@@ -210,26 +182,16 @@ const editProduct = async (req, res, next) => {
     try {
         const { imagesDelete, formData } = { ...req.body }
 
-        const { _id, name, category, description, sizes, images, price, originalPrice } = { ...formData }
+        const { _id, productInfo } = formData
 
-        await Product.findByIdAndUpdate(_id, { $set: { images: [] } }, { multi: true })
-        await Product.findByIdAndUpdate(_id, { $set: { name, category, description, images, price, originalPrice } })
+        await Product.findByIdAndUpdate(_id, { $set: productInfo })
 
-        await Size.deleteMany({ product: _id })
-        sizesUpdate = sizes.map(item => ({
-            ...item,
-            product: _id
-        }))
-
-        await Size.create(sizesUpdate)
-        //  console.log("image xoa",imageDelete)
         if (imagesDelete.length > 0) {
             await Cloudinary.delteImage(imagesDelete);
         }
         else {
             console.log("khong co img xoa")
         }
-        // console.log("call")
         res.status(200).json({ success: true })
     } catch (error) {
         next(error)

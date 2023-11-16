@@ -29,6 +29,11 @@ const productSchema=new Schema({
         min:0,
         required:true
     },
+    numberInStock:{
+        type:Number,
+        min:0,
+        required:true
+    },
     originalPrice: {
         type: Number,
         min: 0,
